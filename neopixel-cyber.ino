@@ -24,6 +24,8 @@ void setup() {
 
   blinken_init(palette, leds, NUM_LEDS/* + NUM_LEDS2*/);
   blinken_setTwinkle(CRGB::White, 20);
+  Serial.begin(115200);
+  Serial.println("Startup");
 }
 
 void loop() {

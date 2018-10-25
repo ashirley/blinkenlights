@@ -9,7 +9,12 @@ byte bl_twinkleChance = 0;
 int bl_twinkleSustainTime = 300;
 long *bl_twinkleTimes;
 
+uint8_t bl_timePeriod = 40; //0; //(x/4)Hz or 0 for no effect.
+uint8_t bl_timeAmplitude = 255; // 0 = no effect, 255 ~= 12 times speed difference between slowest and fastest.
+uint8_t bl_timePhase = 0; //
+
 long _time = 0;
+long _wallTime = 0;
 
 void blinken_init(CRGB *palette, CRGB* leds, int ledCountIn) {
   bl_palette = palette;
@@ -26,7 +31,7 @@ void blinken_init(CRGB *palette, CRGB* leds, int ledCountIn) {
 
 /**
  * set the twinkle effect.
- * 
+ *
  * @param color The color to flash
  * @param chance There is a n/255 chance of a twinkle in any given led in 1000 time steps
  */
@@ -35,12 +40,41 @@ void blinken_setTwinkle(CRGB color, byte chance) {
   bl_twinkleChance = chance;
 }
 
-
 void blinken_show() {
   //advance time
+  long prevWallTime = _wallTime;
+  _wallTime = millis();
+  int wallTimeStep = (int) (_wallTime - prevWallTime);
+
+  long timeSineAdj = 128*255; //meaning use wallTime as-is
+  uint8_t amplitudeMultiple;
+  if (bl_timePeriod) {
+    //              0-256              -128-128   0-256
+    timeSineAdj = (bl_timeAmplitude * (128 - sin8((uint8_t) (_wallTime / bl_timePeriod) + bl_timePhase)) / 64) + 128
+    //timeSineAdj is between z -> 256 where z = 256/multiple
+//    byte z = 256L * 16 / bl_timeAmplitude;
+//    timeSineAdj = ((long) z * 255 + (256L - z) * sin8((uint8_t) (_wallTime / bl_timePeriod) + bl_timePhase)) / (128L - z);
+    //20 ->240 ish
+//    timeSineAdj = (20L + (5L * bl_timeAmplitude * (sin8((uint8_t) (_wallTime / bl_timePeriod) + bl_timePhase)) / 6) / 255);
+  }
   long prevTime = _time;
-  _time = millis();
-  int timeStep = (int) (_time - prevTime);
+  _time = prevTime + (long) wallTimeStep * timeSineAdj / 256;
+  int timeStep = _time - prevTime;
+
+  //
+
+  Serial.print(_wallTime);
+  Serial.print("\t");
+  Serial.print(wallTimeStep);
+  Serial.print("\t");
+  Serial.print(timeSineAdj);
+  Serial.print("\t");
+  Serial.print(timeSineAdj / 256);
+  Serial.print("\t");
+  Serial.print(_time);
+  Serial.print("\t");
+  Serial.print(timeStep);
+  Serial.println("");
 
   for (byte i = 0; i < bl_ledCount; i++) {
     //twinkle?
