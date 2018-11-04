@@ -64,7 +64,7 @@ void blinken_show() {
   _wallTime = millis();
   int wallTimeStep = (int) (_wallTime - prevWallTime);
 
-  long timeSineAdj = 512; //default to using wallTime as-is
+  long timeSineAdj = 128*255; //meaning use wallTime as-is
   if (bl_timePeriod) {
     //a: sin is 0->255 (128 is neutral)
     // b: -128, multiply by (bl_timeAmplitude / 64) (0->4), + 512 = 0->1024 (512 is neutral)
