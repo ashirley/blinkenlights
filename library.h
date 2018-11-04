@@ -24,6 +24,22 @@ uint8_t bl_timePeriod = 40; //0; //(x/4)Hz or 0 for no effect.
 uint8_t bl_timeAmplitude = 64; // 0 = no effect, 255 ~= 12 times speed difference between slowest and fastest.
 uint8_t bl_timePhase = 0; //
 
+//*****
+// Things can vary by the location of the LED to create spatial effects
+
+struct Location {
+  int x;
+  int y;
+
+  Location(int xi, int yi) {
+    x = xi;
+    y = yi;
+  }
+};
+Location *bl_ledLocations;
+byte bl_paletteX = 64; // 1 means offset palette 1 position for every 16 leds.
+byte bl_paletteY = 16; // 16 means 1 palette offset per led and 255 means 16 offest per led.
+
 long _time = 0;
 long _wallTime = 0;
 
@@ -39,6 +55,10 @@ void blinken_init(CRGB *palette, int paletteCount, CRGB* leds, int ledCountIn) {
 
   //set the max refresh rate to at least 20 Hz or lower if already set.
   FastLED.setMaxRefreshRate(20, true);
+}
+
+void blinken_setLocations(Location* locations) {
+  bl_ledLocations = locations;
 }
 
 /**
@@ -98,8 +118,11 @@ void blinken_show() {
     }
 
     paletteIndex = map(((_time / (bl_palettePeriod)) % 1024), 0, 1023, 0, bl_paletteCount);
-    //TODO: be more configurable how much i affects the paletteIndex.
-    paletteIndex = (paletteIndex + i) % bl_paletteCount;
+    int locationOffset = 0;
+    if (bl_paletteX || bl_paletteY) {
+      locationOffset = (bl_ledLocations[i].x * bl_paletteX + bl_ledLocations[i].y * bl_paletteY) / 16;
+    }
+    paletteIndex = (paletteIndex + locationOffset) % bl_paletteCount;
     bl_ledTarget[i] = bl_palette[paletteIndex];
 
     if (_time - bl_twinkleTimes[i] <= bl_twinkleSustainTime) {
