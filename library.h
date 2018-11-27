@@ -40,6 +40,14 @@ Location *bl_ledLocations;
 byte bl_paletteX = 64; // 1 means offset palette 1 position for every 16 leds.
 byte bl_paletteY = 16; // 16 means 1 palette offset per led and 255 means 16 offest per led.
 
+//*****
+// Things can vary according to a mask or image
+
+byte bl_maskAmount = 0;
+byte bl_maskRowLength;
+byte *bl_mask;
+
+
 long _time = 0;
 long _wallTime = 0;
 
@@ -61,6 +69,12 @@ void blinken_setLocations(Location* locations) {
   bl_ledLocations = locations;
 }
 
+void blinken_setMask(byte amount, byte rowLength, byte* mask) {
+  bl_mask = mask;
+  bl_maskRowLength = rowLength;
+  bl_maskAmount = amount;
+}
+
 /**
  * set the twinkle effect.
  *
@@ -71,6 +85,7 @@ void blinken_setTwinkle(CRGB color, byte chance) {
   bl_twinkleColor = color;
   bl_twinkleChance = chance;
 }
+
 
 void blinken_show() {
   //advance time
@@ -118,11 +133,19 @@ void blinken_show() {
     }
 
     paletteIndex = map(((_time / (bl_palettePeriod)) % 1024), 0, 1023, 0, bl_paletteCount);
+
     int locationOffset = 0;
     if (bl_paletteX || bl_paletteY) {
       locationOffset = (bl_ledLocations[i].x * bl_paletteX + bl_ledLocations[i].y * bl_paletteY) / 16;
     }
-    paletteIndex = (paletteIndex + locationOffset) % bl_paletteCount;
+
+    int maskOffset = 0;
+    if (bl_maskAmount) {
+      Location loc = bl_ledLocations[i];
+      maskOffset = bl_mask[loc.x * bl_maskRowLength + loc.y] * bl_maskAmount / 16;
+    }
+
+    paletteIndex = (paletteIndex + locationOffset + maskOffset) % bl_paletteCount;
     bl_ledTarget[i] = bl_palette[paletteIndex];
 
     if (_time - bl_twinkleTimes[i] <= bl_twinkleSustainTime) {
