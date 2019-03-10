@@ -1,4 +1,6 @@
-CRGB *bl_ledTarget;
+
+//CRGB *bl_ledTarget;
+CRGB bl_ledTarget[NUM_LEDS];
 CRGB *bl_leds;
 int bl_ledCount;
 
@@ -7,15 +9,16 @@ int bl_ledCount;
 
 CRGB *bl_palette;
 int bl_paletteCount;
-int bl_palettePeriod = 10; //time to cycle through the whole palette
+uint8_t bl_palettePeriod = 100; //time (s) to cycle through the whole palette
 
 //*****
 // LEDs can "twinkle" i.e. randomly change quickly to this color then slowly back (typically CRGB::White )
 
 CRGB bl_twinkleColor = 0;
-byte bl_twinkleChance = 0;
-int bl_twinkleSustainTime = 100;
-long *bl_twinkleTimes;
+uint8_t bl_twinkleChance = 0;
+uint8_t bl_twinkleSustainTime = 100; //how long (in ms) the twinkle effect stays active
+//long *bl_twinkleTimes;
+long bl_twinkleTimes[NUM_LEDS];
 
 //*****
 // Time itself can progress faster/slower based on a sine wave.
@@ -37,13 +40,13 @@ struct Location {
   }
 };
 Location *bl_ledLocations;
-byte bl_paletteX = 64; // 1 means offset palette 1 position for every 16 leds.
-byte bl_paletteY = 16; // 16 means 1 palette offset per led and 255 means 16 offest per led.
+uint8_t bl_paletteX = 0; //64; // 1 means offset palette 1 position for every 16 leds.
+uint8_t bl_paletteY = 4; //16; // 16 means 1 palette offset per led and 255 means 16 offest per led.
 
 //*****
 // Things can vary according to a mask or image
 
-byte bl_maskAmount = 0;
+uint8_t bl_maskAmount = 0;
 byte bl_maskRowLength;
 byte *bl_mask;
 
@@ -56,8 +59,8 @@ void blinken_init(CRGB *palette, int paletteCount, CRGB* leds, int ledCountIn) {
   bl_paletteCount = paletteCount;
   bl_leds = leds;
   bl_ledCount = ledCountIn;
-  bl_ledTarget = (CRGB *) malloc(ledCountIn * sizeof(CRGB));
-  bl_twinkleTimes = (long *) malloc(ledCountIn * sizeof(long));
+  //bl_ledTarget = (CRGB *) malloc(ledCountIn * sizeof(CRGB));
+  //bl_twinkleTimes = (long *) malloc(ledCountIn * sizeof(long));
   memset(bl_twinkleTimes, 0, ledCountIn * sizeof(long));
   _time = millis();
 
@@ -99,7 +102,7 @@ void blinken_show() {
   _wallTime = millis();
   int wallTimeStep = (int) (_wallTime - prevWallTime);
 
-  long timeSineAdj = 128*255; //meaning use wallTime as-is
+  long timeSineAdj = 2*255; //meaning use wallTime as-is
   if (bl_timePeriod) {
     //a: sin is 0->255 (128 is neutral)
     // b: -128, multiply by (bl_timeAmplitude / 64) (0->4), + 512 = 0->1024 (512 is neutral)
@@ -142,7 +145,7 @@ void blinken_show() {
     int maskOffset = 0;
     if (bl_maskAmount) {
       Location loc = bl_ledLocations[i];
-      maskOffset = bl_mask[loc.x * bl_maskRowLength + loc.y] * bl_maskAmount / 16;
+      maskOffset = bl_mask[(loc.x - 1) * bl_maskRowLength + loc.y - 1] * bl_maskAmount / 16;
     }
 
     paletteIndex = (paletteIndex + locationOffset + maskOffset) % bl_paletteCount;
@@ -153,13 +156,10 @@ void blinken_show() {
     }
     else {
       //fade towards target
-      bl_leds[i] = bl_leds[i].nscale8(128) + bl_ledTarget[i].nscale8(128); // 1/2 target + 1/2 curr.
+      bl_leds[i] = bl_leds[i].nscale8(224) + bl_ledTarget[i].nscale8(32);
     }
   }
 
   FastLED.show();
   delay(30);
 }
-
-
-
